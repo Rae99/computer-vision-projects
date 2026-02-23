@@ -5,7 +5,7 @@
 int main()
 {
     // Open default webcam
-    cv::VideoCapture cap(0);
+    cv::VideoCapture cap(1);
     if (!cap.isOpened()) {
         std::cerr << "Error: Cannot open camera.\n";
         return -1;
