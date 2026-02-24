@@ -26,7 +26,14 @@ namespace p3 {
  * @param bgr  Input color image (BGR)
  * @return     CV_8UC1 binary mask (foreground = 255)
  */
+// Task1: threshold -> binary (foreground = non-zero)
 cv::Mat thresholdBinary(const cv::Mat &bgr);
+
+// Task2: morphology cleanup
+cv::Mat cleanBinary(const cv::Mat &binary);
+
+// Task2 helper: keep only the best region (usually the main object)
+cv::Mat keepLargestComponent(const cv::Mat &binary);
 
 } // namespace p3
 
