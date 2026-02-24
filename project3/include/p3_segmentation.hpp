@@ -29,8 +29,13 @@ namespace p3 {
 // Task1: threshold -> binary (foreground = non-zero)
 cv::Mat thresholdBinary(const cv::Mat &bgr);
 
+// Task2: morphology cleanup from scratch
+// cv::Mat morphCleanup(const cv::Mat &bin, int openKernel, int
+// closeKernel);
+
 // Task2: morphology cleanup
-cv::Mat morphCleanup(const cv::Mat &bin, int openKernel, int closeKernel);
+cv::Mat morphCleanup(const cv::Mat &bin, int openKernel = 3,
+                     int closeKernel = 11);
 
 // Task2 helper: keep only the best region (usually the main object)
 cv::Mat keepLargestComponent(const cv::Mat &binary);

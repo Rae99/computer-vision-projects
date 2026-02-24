@@ -148,68 +148,82 @@ cv::Mat thresholdBinary(const cv::Mat &bgr) {
 
 // Single erosion pass: a white pixel stays white only if ALL neighbors in
 // kernel are white
-static cv::Mat erode(const cv::Mat &bin, int kernelSize) {
-    CV_Assert(bin.type() == CV_8UC1);
-    int r = kernelSize / 2;
-    cv::Mat out(bin.rows, bin.cols, CV_8UC1, cv::Scalar(0));
+// static cv::Mat erode(const cv::Mat &bin, int kernelSize) {
+//     CV_Assert(bin.type() == CV_8UC1);
+//     int r = kernelSize / 2;
+//     cv::Mat out(bin.rows, bin.cols, CV_8UC1, cv::Scalar(0));
 
-    for (int y = 0; y < bin.rows; ++y) {
-        uchar *dst = out.ptr<uchar>(y);
-        for (int x = 0; x < bin.cols; ++x) {
-            // Only care about foreground pixels
-            if (bin.at<uchar>(y, x) == 0)
-                continue;
+//     for (int y = 0; y < bin.rows; ++y) {
+//         uchar *dst = out.ptr<uchar>(y);
+//         for (int x = 0; x < bin.cols; ++x) {
+//             // Only care about foreground pixels
+//             if (bin.at<uchar>(y, x) == 0)
+//                 continue;
 
-            bool allFg = true;
-            for (int ky = -r; ky <= r && allFg; ++ky) {
-                int yy = clampi(y + ky, 0, bin.rows - 1);
-                for (int kx = -r; kx <= r && allFg; ++kx) {
-                    int xx = clampi(x + kx, 0, bin.cols - 1);
-                    if (bin.at<uchar>(yy, xx) == 0)
-                        allFg = false;
-                }
-            }
-            dst[x] = allFg ? 255 : 0;
-        }
-    }
-    return out;
-}
+//             bool allFg = true;
+//             for (int ky = -r; ky <= r && allFg; ++ky) {
+//                 int yy = clampi(y + ky, 0, bin.rows - 1);
+//                 for (int kx = -r; kx <= r && allFg; ++kx) {
+//                     int xx = clampi(x + kx, 0, bin.cols - 1);
+//                     if (bin.at<uchar>(yy, xx) == 0)
+//                         allFg = false;
+//                 }
+//             }
+//             dst[x] = allFg ? 255 : 0;
+//         }
+//     }
+//     return out;
+// }
 
-// Single dilation pass: a black pixel becomes white if ANY neighbor in kernel
-// is white
-static cv::Mat dilate(const cv::Mat &bin, int kernelSize) {
-    CV_Assert(bin.type() == CV_8UC1);
-    int r = kernelSize / 2;
-    cv::Mat out(bin.rows, bin.cols, CV_8UC1, cv::Scalar(0));
+// // Single dilation pass: a black pixel becomes white if ANY neighbor in
+// kernel
+// // is white
+// static cv::Mat dilate(const cv::Mat &bin, int kernelSize) {
+//     CV_Assert(bin.type() == CV_8UC1);
+//     int r = kernelSize / 2;
+//     cv::Mat out(bin.rows, bin.cols, CV_8UC1, cv::Scalar(0));
 
-    for (int y = 0; y < bin.rows; ++y) {
-        uchar *dst = out.ptr<uchar>(y);
-        for (int x = 0; x < bin.cols; ++x) {
-            // If already foreground, keep it
-            if (bin.at<uchar>(y, x) == 255) {
-                dst[x] = 255;
-                continue;
-            }
+//     for (int y = 0; y < bin.rows; ++y) {
+//         uchar *dst = out.ptr<uchar>(y);
+//         for (int x = 0; x < bin.cols; ++x) {
+//             // If already foreground, keep it
+//             if (bin.at<uchar>(y, x) == 255) {
+//                 dst[x] = 255;
+//                 continue;
+//             }
 
-            bool anyFg = false;
-            for (int ky = -r; ky <= r && !anyFg; ++ky) {
-                int yy = clampi(y + ky, 0, bin.rows - 1);
-                for (int kx = -r; kx <= r && !anyFg; ++kx) {
-                    int xx = clampi(x + kx, 0, bin.cols - 1);
-                    if (bin.at<uchar>(yy, xx) == 255)
-                        anyFg = true;
-                }
-            }
-            dst[x] = anyFg ? 255 : 0;
-        }
-    }
-    return out;
-}
+//             bool anyFg = false;
+//             for (int ky = -r; ky <= r && !anyFg; ++ky) {
+//                 int yy = clampi(y + ky, 0, bin.rows - 1);
+//                 for (int kx = -r; kx <= r && !anyFg; ++kx) {
+//                     int xx = clampi(x + kx, 0, bin.cols - 1);
+//                     if (bin.at<uchar>(yy, xx) == 255)
+//                         anyFg = true;
+//                 }
+//             }
+//             dst[x] = anyFg ? 255 : 0;
+//         }
+//     }
+//     return out;
+// }
 
 // Public function: opening (remove noise) then closing (fill holes)
+// from scratch using our manual erosion/dilation
+// cv::Mat morphCleanup(const cv::Mat &bin, int openKernel, int closeKernel) {
+//     cv::Mat opened = dilate(erode(bin, openKernel), openKernel);
+//     cv::Mat closed = erode(dilate(opened, closeKernel), closeKernel);
+//     return closed;
+// }
+
 cv::Mat morphCleanup(const cv::Mat &bin, int openKernel, int closeKernel) {
-    cv::Mat opened = dilate(erode(bin, openKernel), openKernel);
-    cv::Mat closed = erode(dilate(opened, closeKernel), closeKernel);
+    cv::Mat k1 = cv::getStructuringElement(cv::MORPH_RECT,
+                                           cv::Size(openKernel, openKernel));
+    cv::Mat k2 = cv::getStructuringElement(cv::MORPH_RECT,
+                                           cv::Size(closeKernel, closeKernel));
+
+    cv::Mat opened, closed;
+    cv::morphologyEx(bin, opened, cv::MORPH_OPEN, k1);
+    cv::morphologyEx(opened, closed, cv::MORPH_CLOSE, k2);
     return closed;
 }
 
