@@ -9,7 +9,6 @@ find_package(OpenCV REQUIRED)
 # common helper library (segmentation, features, db I/O, classifier, visualization, pipeline)
 add_library(p3_common STATIC
         src/p3_segmentation.cpp
-        src/p3_features.cpp
         src/p3_db.cpp
         src/p3_classifier.cpp
         src/p3_visualize.cpp

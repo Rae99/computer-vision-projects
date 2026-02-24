@@ -4,6 +4,11 @@
 
 namespace p3 {
 
+// Clamp helper for border handling
+static inline int clampi(int v, int lo, int hi) {
+    return std::max(lo, std::min(v, hi));
+}
+
 static cv::Mat toGrayscale(const cv::Mat &bgr) {
     CV_Assert(!bgr.empty() && bgr.type() == CV_8UC3);
 
@@ -23,11 +28,6 @@ static cv::Mat toGrayscale(const cv::Mat &bgr) {
         }
     }
     return gray;
-}
-
-// Clamp helper for border handling
-static inline int clampi(int v, int lo, int hi) {
-    return std::max(lo, std::min(v, hi));
 }
 
 static cv::Mat gaussianBlur5x5(const cv::Mat &gray) {
@@ -130,7 +130,7 @@ static cv::Mat applyThreshold(const cv::Mat &graySmooth, double T,
     return bin;
 }
 
-cv::Mat thresholdBinaryScratch(const cv::Mat &bgr, bool invert) {
+cv::Mat thresholdBinary(const cv::Mat &bgr) {
     // 1) Grayscale (manual)
     cv::Mat gray = toGrayscale(bgr);
 
@@ -141,27 +141,76 @@ cv::Mat thresholdBinaryScratch(const cv::Mat &bgr, bool invert) {
     double T = isodataThreshold(smooth);
 
     // 4) Binary mask (manual)
-    return applyThreshold(smooth, T, invert);
+    return applyThreshold(smooth, T, true);
 }
 
-cv::Mat cleanBinary(const cv::Mat &binary) {
-    CV_Assert(!binary.empty());
-    CV_Assert(binary.type() == CV_8UC1);
+// in p3_segmentation.cpp
 
-    cv::Mat cleaned = binary.clone();
+// Single erosion pass: a white pixel stays white only if ALL neighbors in
+// kernel are white
+static cv::Mat erode(const cv::Mat &bin, int kernelSize) {
+    CV_Assert(bin.type() == CV_8UC1);
+    int r = kernelSize / 2;
+    cv::Mat out(bin.rows, bin.cols, CV_8UC1, cv::Scalar(0));
 
-    // Small kernel: preserve shape, minimal distortion
-    cv::Mat k3 = cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(3, 3));
+    for (int y = 0; y < bin.rows; ++y) {
+        uchar *dst = out.ptr<uchar>(y);
+        for (int x = 0; x < bin.cols; ++x) {
+            // Only care about foreground pixels
+            if (bin.at<uchar>(y, x) == 0)
+                continue;
 
-    // 1) Closing: fill small holes (specular highlights)
-    cv::morphologyEx(cleaned, cleaned, cv::MORPH_CLOSE, k3, cv::Point(-1, -1),
-                     1);
+            bool allFg = true;
+            for (int ky = -r; ky <= r && allFg; ++ky) {
+                int yy = clampi(y + ky, 0, bin.rows - 1);
+                for (int kx = -r; kx <= r && allFg; ++kx) {
+                    int xx = clampi(x + kx, 0, bin.cols - 1);
+                    if (bin.at<uchar>(yy, xx) == 0)
+                        allFg = false;
+                }
+            }
+            dst[x] = allFg ? 255 : 0;
+        }
+    }
+    return out;
+}
 
-    // 2) Opening: remove small isolated noise
-    cv::morphologyEx(cleaned, cleaned, cv::MORPH_OPEN, k3, cv::Point(-1, -1),
-                     1);
+// Single dilation pass: a black pixel becomes white if ANY neighbor in kernel
+// is white
+static cv::Mat dilate(const cv::Mat &bin, int kernelSize) {
+    CV_Assert(bin.type() == CV_8UC1);
+    int r = kernelSize / 2;
+    cv::Mat out(bin.rows, bin.cols, CV_8UC1, cv::Scalar(0));
 
-    return cleaned;
+    for (int y = 0; y < bin.rows; ++y) {
+        uchar *dst = out.ptr<uchar>(y);
+        for (int x = 0; x < bin.cols; ++x) {
+            // If already foreground, keep it
+            if (bin.at<uchar>(y, x) == 255) {
+                dst[x] = 255;
+                continue;
+            }
+
+            bool anyFg = false;
+            for (int ky = -r; ky <= r && !anyFg; ++ky) {
+                int yy = clampi(y + ky, 0, bin.rows - 1);
+                for (int kx = -r; kx <= r && !anyFg; ++kx) {
+                    int xx = clampi(x + kx, 0, bin.cols - 1);
+                    if (bin.at<uchar>(yy, xx) == 255)
+                        anyFg = true;
+                }
+            }
+            dst[x] = anyFg ? 255 : 0;
+        }
+    }
+    return out;
+}
+
+// Public function: opening (remove noise) then closing (fill holes)
+cv::Mat morphCleanup(const cv::Mat &bin, int openKernel, int closeKernel) {
+    cv::Mat opened = dilate(erode(bin, openKernel), openKernel);
+    cv::Mat closed = erode(dilate(opened, closeKernel), closeKernel);
+    return closed;
 }
 
 cv::Mat keepLargestComponent(const cv::Mat &binary) {
@@ -229,10 +278,6 @@ cv::Mat keepLargestComponent(const cv::Mat &binary) {
     cv::Mat out = cv::Mat::zeros(binary.size(), CV_8UC1);
     out.setTo(255, labels == bestLabel);
     return out;
-}
-
-cv::Mat thresholdBinary(const cv::Mat &bgr) {
-    return thresholdBinaryScratch(bgr, true);
 }
 
 } // namespace p3

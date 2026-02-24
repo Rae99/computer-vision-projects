@@ -33,7 +33,7 @@ static void runOnFrame(const cv::Mat &frame, const std::string &task) {
         cv::imshow("Task1 Binary", binary1);
     } else if (task == "--task2") {
         binary1 = p3::thresholdBinary(frame);
-        binary2 = p3::cleanBinary(binary1);
+        binary2 = p3::morphCleanup(binary1, 3, 15);
         binary2 = p3::keepLargestComponent(binary2);
 
         cv::imshow("Input", frame);

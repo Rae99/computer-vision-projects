@@ -30,7 +30,7 @@ namespace p3 {
 cv::Mat thresholdBinary(const cv::Mat &bgr);
 
 // Task2: morphology cleanup
-cv::Mat cleanBinary(const cv::Mat &binary);
+cv::Mat morphCleanup(const cv::Mat &bin, int openKernel, int closeKernel);
 
 // Task2 helper: keep only the best region (usually the main object)
 cv::Mat keepLargestComponent(const cv::Mat &binary);
