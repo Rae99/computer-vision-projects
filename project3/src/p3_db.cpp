@@ -6,9 +6,8 @@
 
 namespace p3 {
 
-bool appendSample(const std::string &path,
-                  const std::string &label,
-                  const std::vector<double> &fv) {
+bool appendSample(const std::string &path, const std::string &label,
+                  const std::vector<double> &fv, const std::string &imageName) {
     std::ofstream ofs(path, std::ios::app);
     if (!ofs.is_open()) {
         std::cerr << "appendSample: failed to open " << path << "\n";
@@ -18,6 +17,9 @@ bool appendSample(const std::string &path,
     ofs << label;
     for (double v : fv) {
         ofs << " " << v;
+    }
+    if (!imageName.empty()) {
+        ofs << " # " << imageName;
     }
     ofs << "\n";
     return true;
@@ -34,11 +36,13 @@ bool loadDB(const std::string &path, std::vector<DBSample> &outSamples) {
 
     std::string line;
     while (std::getline(ifs, line)) {
-        if (line.empty()) continue;
+        if (line.empty())
+            continue;
 
         std::istringstream iss(line);
         DBSample s;
-        if (!(iss >> s.label)) continue;
+        if (!(iss >> s.label))
+            continue;
 
         double v;
         while (iss >> v) {
@@ -60,7 +64,8 @@ bool loadDB(const std::string &path, std::vector<DBSample> &outSamples) {
 
 DBStats computeDBStats(const std::vector<DBSample> &samples) {
     DBStats st;
-    if (samples.empty()) return st;
+    if (samples.empty())
+        return st;
 
     const int dim = (int)samples[0].fv.size();
     st.mean.assign(dim, 0.0);
@@ -88,7 +93,8 @@ DBStats computeDBStats(const std::vector<DBSample> &samples) {
     for (int i = 0; i < dim; ++i) {
         st.stdev[i] = std::sqrt(st.stdev[i] / (double)samples.size());
         // avoid divide-by-zero
-        if (st.stdev[i] < 1e-9) st.stdev[i] = 1.0;
+        if (st.stdev[i] < 1e-9)
+            st.stdev[i] = 1.0;
     }
 
     return st;
@@ -102,7 +108,8 @@ double scaledEuclidean(const std::vector<double> &a,
 
     for (int i = 0; i < dim; ++i) {
         double s = stdev[i];
-        if (s < 1e-9) s = 1.0;
+        if (s < 1e-9)
+            s = 1.0;
         double z = (a[i] - b[i]) / s;
         sum += z * z;
     }
@@ -111,15 +118,16 @@ double scaledEuclidean(const std::vector<double> &a,
 
 std::string classifyNN(const std::vector<double> &query,
                        const std::vector<DBSample> &samples,
-                       const DBStats &stats,
-                       double &bestDist) {
+                       const DBStats &stats, double &bestDist) {
     bestDist = 1e100;
     std::string bestLabel = "UNKNOWN";
 
-    if (samples.empty()) return bestLabel;
+    if (samples.empty())
+        return bestLabel;
 
     for (const auto &s : samples) {
-        if (s.fv.size() != query.size()) continue;
+        if (s.fv.size() != query.size())
+            continue;
         double d = scaledEuclidean(query, s.fv, stats.stdev);
         if (d < bestDist) {
             bestDist = d;
@@ -131,11 +139,11 @@ std::string classifyNN(const std::vector<double> &query,
 
 std::string classifyNNWithUnknown(const std::vector<double> &query,
                                   const std::vector<DBSample> &samples,
-                                  const DBStats &stats,
-                                  double threshold,
+                                  const DBStats &stats, double threshold,
                                   double &bestDist) {
     std::string label = classifyNN(query, samples, stats, bestDist);
-    if (bestDist > threshold) return "UNKNOWN";
+    if (bestDist > threshold)
+        return "UNKNOWN";
     return label;
 }
 

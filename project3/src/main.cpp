@@ -35,8 +35,10 @@ static void showUsage() {
               << "  ./main --task4 --dir   path/to/folder\n"
               << "  ./main --task5 --dir   path/to/folder\n"
               << "  ./main --task6 --dir   path/to/folder\n"
+              << "  ./main --task7 --dir   path/to/eval_folder\n"
               << "  ./main --task9 --dir   path/to/folder\n"
-              << "  ./main --task7 --dir   path/to/eval_folder\n";
+              << "  ./main --task9eval --dir path/to/eval_folder\n"
+              << "  ./main --task9oneshot --dir path/to/eval_folder\n";
 }
 
 struct Task4Context {
@@ -46,26 +48,22 @@ struct Task4Context {
 };
 
 static Task4Context computeMajorRegionFeatures(const cv::Mat &cleaned,
-                                               int connectivity,
-                                               int minArea,
+                                               int connectivity, int minArea,
                                                int maxRegions) {
     Task4Context ctx;
 
     cv::Mat stats, centroids;
-    int n = cv::connectedComponentsWithStats(cleaned, ctx.labels, stats, centroids,
-                                             connectivity, CV_32S);
-    if (n <= 1) {
+    int n = cv::connectedComponentsWithStats(cleaned, ctx.labels, stats,
+                                             centroids, connectivity, CV_32S);
+    if (n <= 1)
         return ctx;
-    }
 
-    ctx.regionIds = p3::selectRegionsByScore(stats, centroids,
-                                             cleaned.cols, cleaned.rows,
-                                             minArea, maxRegions,
-                                             0.002, true);
+    ctx.regionIds =
+        p3::selectRegionsByScore(stats, centroids, cleaned.cols, cleaned.rows,
+                                 minArea, maxRegions, 0.002, true);
 
-    for (int id : ctx.regionIds) {
+    for (int id : ctx.regionIds)
         ctx.features.push_back(p3::computeRegionFeatures(ctx.labels, id));
-    }
 
     return ctx;
 }
@@ -73,30 +71,32 @@ static Task4Context computeMajorRegionFeatures(const cv::Mat &cleaned,
 static std::string trueLabelFromFilename(const fs::path &p) {
     std::string stem = p.stem().string();
     size_t pos = stem.find('_');
-    if (pos != std::string::npos) {
+    if (pos != std::string::npos)
         return stem.substr(0, pos);
-    }
     return stem;
 }
 
 static std::string normalizeLabel(const std::string &label) {
     std::string s = label;
     std::transform(s.begin(), s.end(), s.begin(), ::tolower);
-
-    if (s.rfind("pen", 0) == 0) return "pen";
-    if (s.rfind("bolt", 0) == 0) return "bolt";
-    if (s.rfind("ring", 0) == 0) return "ring";
-    if (s.rfind("scissor", 0) == 0) return "scissors";
-    if (s.rfind("lock", 0) == 0) return "lock";
-
+    if (s.rfind("pen", 0) == 0)
+        return "pen";
+    if (s.rfind("bolt", 0) == 0)
+        return "bolt";
+    if (s.rfind("ring", 0) == 0)
+        return "ring";
+    if (s.rfind("scissor", 0) == 0)
+        return "scissors";
+    if (s.rfind("lock", 0) == 0)
+        return "lock";
     return "UNKNOWN";
 }
 
 static bool saveTrainingSampleFromLastFrame(const cv::Mat &frame,
-                                            const std::string &dbPath) {
+                                            const std::string &dbPath,
+                                            const std::string &imageName = "") {
     cv::Mat binary1 = p3::thresholdBinary(frame);
     cv::Mat cleaned = p3::morphCleanup(binary1, 3, 15);
-
     Task4Context ctx = computeMajorRegionFeatures(cleaned, 8, 500, 1);
 
     if (ctx.features.empty()) {
@@ -105,17 +105,15 @@ static bool saveTrainingSampleFromLastFrame(const cv::Mat &frame,
     }
 
     std::vector<double> fv = ctx.features[0].featureVector();
-
     std::cout << "Enter label (no spaces): ";
     std::string label;
     std::cin >> label;
 
-    bool ok = p3::appendSample(dbPath, label, fv);
+    bool ok = p3::appendSample(dbPath, label, fv, imageName);
     if (ok) {
         std::cout << "Saved to DB: " << label << " [";
-        for (size_t k = 0; k < fv.size(); ++k) {
+        for (size_t k = 0; k < fv.size(); ++k)
             std::cout << fv[k] << (k + 1 < fv.size() ? ", " : "");
-        }
         std::cout << "] -> " << dbPath << "\n";
     }
     return ok;
@@ -126,8 +124,8 @@ static bool saveEmbeddingSampleFromLastFrame(const cv::Mat &frame,
                                              p3::EmbeddingModel &model) {
     cv::Mat binary1 = p3::thresholdBinary(frame);
     cv::Mat cleaned = p3::morphCleanup(binary1, 3, 15);
-
     Task4Context ctx = computeMajorRegionFeatures(cleaned, 8, 500, 1);
+
     if (ctx.features.empty()) {
         std::cerr << "No valid region found to save embedding.\n";
         return false;
@@ -145,15 +143,13 @@ static bool saveEmbeddingSampleFromLastFrame(const cv::Mat &frame,
 
     bool ok = p3::appendEmbeddingSample(embedDbPath, label, emb);
     if (ok) {
-        std::cout << "Saved embedding: " << label
-                  << " dim=" << emb.size()
+        std::cout << "Saved embedding: " << label << " dim=" << emb.size()
                   << " -> " << embedDbPath << "\n";
     }
     return ok;
 }
 
-static void runOnFrame(const cv::Mat &frame,
-                       const std::string &task,
+static void runOnFrame(const cv::Mat &frame, const std::string &task,
                        const std::string &dbPath,
                        const std::string &embedDbPath,
                        p3::EmbeddingModel &embModel) {
@@ -169,7 +165,6 @@ static void runOnFrame(const cv::Mat &frame,
     if (task == "--task2") {
         binary1 = p3::thresholdBinary(frame);
         cleaned = p3::morphCleanup(binary1, 3, 15);
-
         cv::imshow("Input", frame);
         cv::imshow("Task1 Binary", binary1);
         cv::imshow("Task2 Cleaned", cleaned);
@@ -179,16 +174,15 @@ static void runOnFrame(const cv::Mat &frame,
     if (task == "--task3") {
         binary1 = p3::thresholdBinary(frame);
         cleaned = p3::morphCleanup(binary1, 3, 15);
-
         cv::Mat regions = p3::regionMapColor(cleaned, 500, 8, 10);
-
         cv::imshow("Input", frame);
         cv::imshow("Task2 Cleaned", cleaned);
         cv::imshow("Task3 Regions", regions);
         return;
     }
 
-    if (task == "--task4" || task == "--task5" || task == "--task6" || task == "--task9") {
+    if (task == "--task4" || task == "--task5" || task == "--task6" ||
+        task == "--task9") {
         binary1 = p3::thresholdBinary(frame);
         cleaned = p3::morphCleanup(binary1, 3, 15);
 
@@ -198,18 +192,16 @@ static void runOnFrame(const cv::Mat &frame,
         std::vector<p3::DBSample> samples;
         p3::DBStats stats;
         bool dbOK = false;
-
         if (task == "--task6") {
             dbOK = p3::loadDB(dbPath, samples);
-            if (dbOK) stats = p3::computeDBStats(samples);
+            if (dbOK)
+                stats = p3::computeDBStats(samples);
         }
 
         std::vector<p3::EmbSample> embDB;
         bool embOK = false;
-
-        if (task == "--task9") {
+        if (task == "--task9")
             embOK = p3::loadEmbeddingDB(embedDbPath, embDB);
-        }
 
         for (size_t i = 0; i < ctx.features.size(); ++i) {
             p3::drawRegionOverlay(vis, ctx.features[i]);
@@ -218,47 +210,37 @@ static void runOnFrame(const cv::Mat &frame,
             if (task == "--task4" || task == "--task5") {
                 std::cout << "Region " << ctx.features[i].regionId
                           << " feature vector: [";
-                for (size_t k = 0; k < fv.size(); ++k) {
+                for (size_t k = 0; k < fv.size(); ++k)
                     std::cout << fv[k] << (k + 1 < fv.size() ? ", " : "");
-                }
                 std::cout << "]\n";
             }
 
             if (task == "--task6" && dbOK) {
                 double bestDist = 0.0;
-                double thr = 20.0;
-                std::string label = p3::classifyNNWithUnknown(fv, samples, stats, thr, bestDist);
-
+                std::string label = p3::classifyNNWithUnknown(
+                    fv, samples, stats, 20.0, bestDist);
                 cv::Point org((int)ctx.features[i].centroid.x + 10,
                               (int)ctx.features[i].centroid.y + 25);
-
-                cv::putText(vis, label, org,
-                            cv::FONT_HERSHEY_SIMPLEX, 0.9,
+                cv::putText(vis, label, org, cv::FONT_HERSHEY_SIMPLEX, 0.9,
                             cv::Scalar(0, 0, 255), 2);
-
-                std::cout << "Predicted: " << label
-                          << " dist=" << bestDist << "\n";
+                std::cout << "Predicted: " << label << " dist=" << bestDist
+                          << "\n";
             }
 
             if (task == "--task9") {
-                std::vector<float> emb = embModel.computeEmbedding(frame, ctx.features[i]);
-
+                std::vector<float> emb =
+                    embModel.computeEmbedding(frame, ctx.features[i]);
                 std::string label = "UNKNOWN";
                 double bestDist = 0.0;
-                if (embOK && !emb.empty()) {
+                if (embOK && !emb.empty())
                     label = p3::classifyEmbeddingNN_SSD(emb, embDB, bestDist);
-                }
-
                 cv::Point org((int)ctx.features[i].centroid.x + 10,
                               (int)ctx.features[i].centroid.y + 60);
-
-                cv::putText(vis, label, org,
-                            cv::FONT_HERSHEY_SIMPLEX, 0.9,
+                cv::putText(vis, label, org, cv::FONT_HERSHEY_SIMPLEX, 0.9,
                             cv::Scalar(0, 0, 255), 2);
-
                 std::cout << "Embedding predicted: " << label
-                          << " dist=" << bestDist
-                          << " dim=" << emb.size() << "\n";
+                          << " dist=" << bestDist << " dim=" << emb.size()
+                          << "\n";
             }
         }
 
@@ -281,28 +263,27 @@ int main(int argc, char **argv) {
     std::string mode = argv[2];
     std::string arg = argv[3];
 
-    std::string dbPath = "data/object_db.txt";
-    std::string embedDbPath = "data/embed_db.txt";
+    std::string dbPath = "../data/object_db.txt";
+    std::string embedDbPath = "../data/embed_db.txt";
+    std::string onnxPath = "../data/resnet18-v2-7.onnx";
 
-    std::string onnxPath = "data/resnet18-v2-7.onnx";
     p3::EmbeddingModel embModel(onnxPath);
 
+    // ── Task 7: hand-built feature confusion matrix
+    // ───────────────────────────
     if (task == "--task7") {
         if (mode != "--dir") {
             std::cerr << "Task7 requires --dir\n";
             return 1;
         }
 
-        std::vector<std::string> classes =
-            {"pen", "bolt", "ring", "scissors", "lock"};
-
-        std::map<std::string, int> idx;
+        std::vector<std::string> classes = {"pen", "bolt", "ring", "scissors",
+                                            "lock"};
+        std::map<std::string, int> cidx;
         for (int i = 0; i < (int)classes.size(); ++i)
-            idx[classes[i]] = i;
-
+            cidx[classes[i]] = i;
         std::vector<std::vector<int>> confusion(
-            classes.size(),
-            std::vector<int>(classes.size(), 0));
+            classes.size(), std::vector<int>(classes.size(), 0));
 
         fs::path folder(arg);
         if (!fs::exists(folder) || !fs::is_directory(folder)) {
@@ -316,73 +297,239 @@ int main(int argc, char **argv) {
             return 1;
         }
         p3::DBStats stats = p3::computeDBStats(samples);
-
-        int total = 0;
+        int total = 0, correct = 0;
 
         for (auto &e : fs::directory_iterator(folder)) {
             if (!e.is_regular_file() || !isImageFile(e.path()))
                 continue;
-
             cv::Mat frame = cv::imread(e.path().string());
             if (frame.empty())
                 continue;
 
             std::string trueLab =
                 normalizeLabel(trueLabelFromFilename(e.path()));
-
-            if (idx.find(trueLab) == idx.end())
+            if (cidx.find(trueLab) == cidx.end())
                 continue;
 
             cv::Mat binary1 = p3::thresholdBinary(frame);
             cv::Mat cleaned = p3::morphCleanup(binary1, 3, 15);
             Task4Context ctx = computeMajorRegionFeatures(cleaned, 8, 500, 1);
-
             if (ctx.features.empty())
                 continue;
 
             std::vector<double> fv = ctx.features[0].featureVector();
-
             double bestDist = 0.0;
-            double thr = 20.0;
+            std::string pred = normalizeLabel(
+                p3::classifyNNWithUnknown(fv, samples, stats, 20.0, bestDist));
 
-            std::string pred =
-                normalizeLabel(
-                    p3::classifyNNWithUnknown(
-                        fv, samples, stats, thr, bestDist));
+            std::cout << e.path().filename() << "  true=" << trueLab
+                      << "  pred=" << pred << "  dist=" << bestDist << "\n";
 
-            if (idx.find(pred) != idx.end()) {
-                confusion[idx[trueLab]][idx[pred]]++;
+            if (cidx.find(pred) != cidx.end()) {
+                confusion[cidx[trueLab]][cidx[pred]]++;
+                if (trueLab == pred)
+                    ++correct;
             }
-
-            std::cout << e.path().filename()
-                      << " true=" << trueLab
-                      << " pred=" << pred
-                      << " dist=" << bestDist << "\n";
-
-            total++;
+            ++total;
         }
 
         std::cout << "\nConfusion Matrix (rows=true, cols=pred)\n\n";
-        std::cout << std::setw(12) << " ";
+        std::cout << std::setw(14) << " ";
         for (auto &c : classes)
             std::cout << std::setw(12) << c;
         std::cout << "\n";
-
         for (size_t r = 0; r < classes.size(); ++r) {
-            std::cout << std::setw(12) << classes[r];
-            for (size_t c = 0; c < classes.size(); ++c) {
-                std::cout << std::setw(12)
-                          << confusion[r][c];
-            }
+            std::cout << std::setw(14) << classes[r];
+            for (size_t c = 0; c < classes.size(); ++c)
+                std::cout << std::setw(12) << confusion[r][c];
             std::cout << "\n";
         }
-
-        std::cout << "\nTotal evaluated: "
-                  << total << "\n";
-
+        std::cout << "\nAccuracy: " << correct << "/" << total << " = "
+                  << (total > 0 ? 100.0 * correct / total : 0.0) << "%\n";
         return 0;
     }
 
+    // ── Task 9eval: embedding confusion matrix
+    // ────────────────────────────────
+    if (task == "--task9eval") {
+        if (mode != "--dir") {
+            std::cerr << "task9eval requires --dir\n";
+            return 1;
+        }
+
+        std::vector<std::string> classes = {"pen", "bolt", "ring", "scissors",
+                                            "lock"};
+        std::map<std::string, int> cidx;
+        for (int i = 0; i < (int)classes.size(); ++i)
+            cidx[classes[i]] = i;
+        std::vector<std::vector<int>> confusion(
+            classes.size(), std::vector<int>(classes.size(), 0));
+
+        fs::path folder(arg);
+        if (!fs::exists(folder) || !fs::is_directory(folder)) {
+            std::cerr << "Not a directory: " << arg << "\n";
+            return 1;
+        }
+
+        std::vector<p3::EmbSample> embDB;
+        if (!p3::loadEmbeddingDB(embedDbPath, embDB) || embDB.empty()) {
+            std::cerr << "Embedding DB load failed: " << embedDbPath << "\n";
+            return 1;
+        }
+        int total = 0, correct = 0;
+
+        for (auto &e : fs::directory_iterator(folder)) {
+            if (!e.is_regular_file() || !isImageFile(e.path()))
+                continue;
+            cv::Mat frame = cv::imread(e.path().string());
+            if (frame.empty())
+                continue;
+
+            std::string trueLab =
+                normalizeLabel(trueLabelFromFilename(e.path()));
+            if (cidx.find(trueLab) == cidx.end())
+                continue;
+
+            cv::Mat binary1 = p3::thresholdBinary(frame);
+            cv::Mat cleaned = p3::morphCleanup(binary1, 3, 15);
+            Task4Context ctx = computeMajorRegionFeatures(cleaned, 8, 500, 1);
+            if (ctx.features.empty())
+                continue;
+
+            std::vector<float> emb =
+                embModel.computeEmbedding(frame, ctx.features[0]);
+            double bestDist = 0.0;
+            std::string pred = "UNKNOWN";
+            if (!emb.empty())
+                pred = normalizeLabel(
+                    p3::classifyEmbeddingNN_SSD(emb, embDB, bestDist));
+
+            std::cout << e.path().filename() << "  true=" << trueLab
+                      << "  pred=" << pred << "  dist=" << bestDist << "\n";
+
+            if (cidx.find(pred) != cidx.end()) {
+                confusion[cidx[trueLab]][cidx[pred]]++;
+                if (trueLab == pred)
+                    ++correct;
+            }
+            ++total;
+        }
+
+        std::cout << "\nEmbedding Confusion Matrix (rows=true, cols=pred)\n\n";
+        std::cout << std::setw(14) << " ";
+        for (auto &c : classes)
+            std::cout << std::setw(12) << c;
+        std::cout << "\n";
+        for (size_t r = 0; r < classes.size(); ++r) {
+            std::cout << std::setw(14) << classes[r];
+            for (size_t c = 0; c < classes.size(); ++c)
+                std::cout << std::setw(12) << confusion[r][c];
+            std::cout << "\n";
+        }
+        std::cout << "\nAccuracy: " << correct << "/" << total << " = "
+                  << (total > 0 ? 100.0 * correct / total : 0.0) << "%\n";
+        return 0;
+    }
+
+    // ── Task 9oneshot: one-shot embedding eval (1 sample per class) ──────────
+    if (task == "--task9oneshot") {
+        if (mode != "--dir") {
+            std::cerr << "task9oneshot requires --dir\n";
+            return 1;
+        }
+
+        std::vector<std::string> classes = {"pen", "bolt", "ring", "scissors",
+                                            "lock"};
+        std::map<std::string, int> cidx;
+        for (int i = 0; i < (int)classes.size(); ++i)
+            cidx[classes[i]] = i;
+        std::vector<std::vector<int>> confusion(
+            classes.size(), std::vector<int>(classes.size(), 0));
+
+        fs::path folder(arg);
+        if (!fs::exists(folder) || !fs::is_directory(folder)) {
+            std::cerr << "Not a directory: " << arg << "\n";
+            return 1;
+        }
+
+        // Load full embedding DB then keep only FIRST sample per label
+        std::vector<p3::EmbSample> fullDB;
+        if (!p3::loadEmbeddingDB(embedDbPath, fullDB) || fullDB.empty()) {
+            std::cerr << "Embedding DB load failed: " << embedDbPath << "\n";
+            return 1;
+        }
+
+        std::vector<p3::EmbSample> oneShotDB;
+        std::map<std::string, bool> seen;
+        for (auto &s : fullDB) {
+            if (!seen.count(s.label)) {
+                seen[s.label] = true;
+                oneShotDB.push_back(s);
+            }
+        }
+        std::cout << "One-shot DB: " << oneShotDB.size()
+                  << " samples (1 per class)\n";
+        for (auto &s : oneShotDB)
+            std::cout << "  " << s.label << " dim=" << s.emb.size() << "\n";
+
+        int total = 0, correct = 0;
+
+        for (auto &e : fs::directory_iterator(folder)) {
+            if (!e.is_regular_file() || !isImageFile(e.path()))
+                continue;
+            cv::Mat frame = cv::imread(e.path().string());
+            if (frame.empty())
+                continue;
+
+            std::string trueLab =
+                normalizeLabel(trueLabelFromFilename(e.path()));
+            if (cidx.find(trueLab) == cidx.end())
+                continue;
+
+            cv::Mat binary1 = p3::thresholdBinary(frame);
+            cv::Mat cleaned = p3::morphCleanup(binary1, 3, 15);
+            Task4Context ctx = computeMajorRegionFeatures(cleaned, 8, 500, 1);
+            if (ctx.features.empty())
+                continue;
+
+            std::vector<float> emb =
+                embModel.computeEmbedding(frame, ctx.features[0]);
+            double bestDist = 0.0;
+            std::string pred = "UNKNOWN";
+            if (!emb.empty())
+                pred = normalizeLabel(
+                    p3::classifyEmbeddingNN_SSD(emb, oneShotDB, bestDist));
+
+            std::cout << e.path().filename() << "  true=" << trueLab
+                      << "  pred=" << pred << "  dist=" << bestDist << "\n";
+
+            if (cidx.find(pred) != cidx.end()) {
+                confusion[cidx[trueLab]][cidx[pred]]++;
+                if (trueLab == pred)
+                    ++correct;
+            }
+            ++total;
+        }
+
+        std::cout << "\nOne-Shot Embedding Confusion Matrix (rows=true, "
+                     "cols=pred)\n\n";
+        std::cout << std::setw(14) << " ";
+        for (auto &c : classes)
+            std::cout << std::setw(12) << c;
+        std::cout << "\n";
+        for (size_t r = 0; r < classes.size(); ++r) {
+            std::cout << std::setw(14) << classes[r];
+            for (size_t c = 0; c < classes.size(); ++c)
+                std::cout << std::setw(12) << confusion[r][c];
+            std::cout << "\n";
+        }
+        std::cout << "\nAccuracy: " << correct << "/" << total << " = "
+                  << (total > 0 ? 100.0 * correct / total : 0.0) << "%\n";
+        return 0;
+    }
+
+    // ── Interactive modes
+    // ─────────────────────────────────────────────────────
     if (mode == "--image") {
         cv::Mat frame = cv::imread(arg, cv::IMREAD_COLOR);
         if (frame.empty()) {
@@ -394,17 +541,14 @@ int main(int argc, char **argv) {
 
         while (true) {
             int key = cv::waitKey(0);
-            if (key == 27 || key == 'q') break;
-
-            if (task == "--task5" && key == 'N') {
-                saveTrainingSampleFromLastFrame(frame, dbPath);
-            }
-
-            if (task == "--task9" && key == 'N') {
+            if (key == 27 || key == 'q')
+                break;
+            if (task == "--task5" && key == 'N')
+                saveTrainingSampleFromLastFrame(
+                    frame, dbPath, fs::path(arg).filename().string());
+            if (task == "--task9" && key == 'N')
                 saveEmbeddingSampleFromLastFrame(frame, embedDbPath, embModel);
-            }
         }
-
         return 0;
     }
 
@@ -417,9 +561,8 @@ int main(int argc, char **argv) {
 
         std::vector<fs::path> files;
         for (auto &e : fs::directory_iterator(folder)) {
-            if (e.is_regular_file() && isImageFile(e.path())) {
+            if (e.is_regular_file() && isImageFile(e.path()))
                 files.push_back(e.path());
-            }
         }
         std::sort(files.begin(), files.end());
         if (files.empty()) {
@@ -438,22 +581,18 @@ int main(int argc, char **argv) {
             runOnFrame(frame, task, dbPath, embedDbPath, embModel);
 
             int key = cv::waitKey(0);
-            if (key == 27 || key == 'q') break;
-
+            if (key == 27 || key == 'q')
+                break;
             if (key == 'n' || key == ' ') {
                 idx = (idx + 1) % files.size();
                 continue;
             }
-
-            if (task == "--task5" && key == 'N') {
-                saveTrainingSampleFromLastFrame(frame, dbPath);
-            }
-
-            if (task == "--task9" && key == 'N') {
+            if (task == "--task5" && key == 'N')
+                saveTrainingSampleFromLastFrame(frame, dbPath,
+                                                files[idx].filename().string());
+            if (task == "--task9" && key == 'N')
                 saveEmbeddingSampleFromLastFrame(frame, embedDbPath, embModel);
-            }
         }
-
         return 0;
     }
 

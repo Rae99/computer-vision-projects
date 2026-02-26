@@ -12,7 +12,8 @@ add_library(p3_common STATIC
         src/p3_db.cpp
         src/p3_classifier.cpp
         src/p3_visualize.cpp
-        src/p3_pipeline.cpp)
+        src/p3_pipeline.cpp
+        src/p3_embedding.cpp)
 
 target_include_directories(p3_common PUBLIC
         ${CMAKE_SOURCE_DIR}/include
