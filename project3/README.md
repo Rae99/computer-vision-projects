@@ -1,7 +1,9 @@
 # CS5330 Project 3 – 2D Object Recognition System
 
 Authors:
-Junrui Ding,  Junyao Han  
+Junrui Ding,  Junyao Han 
+
+We used 3 travel days for this assignment.
 
 ---
 
@@ -192,3 +194,4 @@ https://northeastern-my.sharepoint.com/:v:/g/personal/han_junya_northeastern_edu
 - Objects must be fully contained within the image frame.
 - Baseline features are efficient but sensitive to segmentation quality.
 - CNN embeddings generalize better and support one-shot learning.
+
