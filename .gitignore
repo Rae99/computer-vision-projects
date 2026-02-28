@@ -16,6 +16,9 @@
 # report outputs
 **/report/
 
+# image outputs
+**/images/
+
 # output data
 **/output/
 
