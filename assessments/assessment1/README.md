@@ -7,6 +7,10 @@
 
 ---
 
+## Link to the video
+
+https://drive.google.com/file/d/1fpv-BZm2theaknGzvBp-6iqiNbhWjHTz/view?usp=sharing
+
 ## Reflection
 
 I thought I had a good understanding of entropy before this assignment but I still learnt something new from it.
@@ -23,5 +27,7 @@ Entropy measures the spread of the distribution, not visual complexity in the in
 ## Acknowledgements
 
 I used Claude (Anthropic) as a learning aid throughout this project. I asked it to explain concepts like why log is used in the Shannon formula, and to help me write and debug C++ OpenCV code for computing entropy and generating visualizations. All slides and the final video are my own work.
+
+I didn't collaborate with others.
 
 - **Why log is used in the Shannon formula.** I understood that $p_i$ represented probability, but wasn't sure why taking the log was the right way to measure "surprise." Claude explained that $-\log_2 p_i$ has a natural interpretation: it measures how many yes/no questions you'd need to identify the outcome. A rare event (small $p$) requires more questions and produces a larger value, while a certain event ($p = 1$) needs zero questions and gives zero. This additivity property — that the surprise of two independent events equals the sum of their individual surprises — is also why log is the unique function that satisfies Shannon's definition of entropy.
