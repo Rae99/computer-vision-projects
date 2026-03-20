@@ -20,8 +20,15 @@ add_executable(project4_pose
         src/pose_estimation.cpp
 )
 
+# Task 7: Harris corner feature detection (standalone program)
+add_executable(project4_features
+        src/feature_main.cpp
+)
+
 target_include_directories(project4 PRIVATE include)
 target_include_directories(project4_pose PRIVATE include)
+target_include_directories(project4_features PRIVATE include)
 
 target_link_libraries(project4 PRIVATE ${OpenCV_LIBS})
 target_link_libraries(project4_pose PRIVATE ${OpenCV_LIBS})
+target_link_libraries(project4_features PRIVATE ${OpenCV_LIBS})
