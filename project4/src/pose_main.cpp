@@ -1,16 +1,11 @@
-// pose_main.cpp
-// Tasks 4, 5, 6 + Extensions
-//
-// Task 4  : solvePnP pose estimation (via pose_estimation.cpp)
-// Task 5  : project outer corners + 3D axes onto board A
-// Task 6  : draw 3D church on board A
-// Extension 1 – Two targets
-//   Board A (9x6): church + axes
-//   Board B (5x4): arrow sign that dynamically points toward the church
-// Extension 2 – Static image mode
-//   ./project4_pose photo.jpg   runs on a saved image instead of the camera
-//
-// Controls (live mode): q = quit    s = save screenshot
+/*
+ * CS5330 Mar 2026
+ * Author: Junyao Han, Junrui Ding
+ * Project4-pose_main.cpp
+ * Runs Project 4 AR tasks for checkerboard pose estimation and rendering.
+ * It draws axes, outer corners, a 3D church model, and a directional arrow
+ * sign with support for both live camera mode and static image mode.
+ */
 
 #include <cmath>
 #include <filesystem>
@@ -28,9 +23,9 @@ using Pt2 = cv::Point2f;
 using V3f = cv::Vec3f;
 using Scl = cv::Scalar;
 
-// =============================================================================
-// Task 5a: XYZ axes at board origin
-// =============================================================================
+/**
+ * @brief Draw XYZ axes at the checkerboard origin.
+ */
 void drawAxes(Mat &frame, const Mat &rvec, const Mat &tvec, const Mat &K,
               const Mat &D) {
     std::vector<V3f> pts = {{0, 0, 0}, {2, 0, 0}, {0, -2, 0}, {0, 0, 2}};
@@ -48,10 +43,10 @@ void drawAxes(Mat &frame, const Mat &rvec, const Mat &tvec, const Mat &K,
                 Scl(0, 0, 255), 2);
 }
 
-// =============================================================================
-// Task 5b: yellow rectangle around the 4 outer corners of the target
-//   9x6 internal corners -> board spans X=[0,8], Y=[0,-5]
-// =============================================================================
+/**
+ * @brief Task 5b: yellow rectangle around the 4 outer corners of the target
+ * 9x6 internal corners -> board spans X=[0,8], Y=[0,-5]
+ */
 void drawOuterCorners(Mat &frame, const Mat &rvec, const Mat &tvec,
                       const Mat &K, const Mat &D) {
     std::vector<V3f> pts = {{0, 0, 0}, {8, 0, 0}, {8, -5, 0}, {0, -5, 0}};
@@ -64,15 +59,15 @@ void drawOuterCorners(Mat &frame, const Mat &rvec, const Mat &tvec,
     }
 }
 
-// =============================================================================
-// Task 6: Church
-//
-// World-space layout (units = checkerboard squares):
-//   Board spans X=[0,8], Y=[0,-5], Z=0
-//   Nave:       X=[2,6],   Y=[-1,-4.5], Z=0..2.5, gable ridge Z=4.2
-//   Bell tower: X=[2,3.2], Y=[-1,-2.2], Z=0..4.5, spire peak  Z=6.0
-//   Cross:      above spire, Z=6.0..7.4
-// =============================================================================
+/**
+ * @brief Task 6: Church
+ *
+ * World-space layout (units = checkerboard squares):
+ *   Board spans X=[0,8], Y=[0,-5], Z=0
+ *   Nave:       X=[2,6],   Y=[-1,-4.5], Z=0..2.5, gable ridge Z=4.2
+ *   Bell tower: X=[2,3.2], Y=[-1,-2.2], Z=0..4.5, spire peak  Z=6.0
+ *   Cross:      above spire, Z=6.0..7.4
+ */
 void drawChurch(Mat &frame, const Mat &rvec, const Mat &tvec, const Mat &K,
                 const Mat &D) {
     std::vector<V3f> pts = {
@@ -190,15 +185,15 @@ void drawChurch(Mat &frame, const Mat &rvec, const Mat &tvec, const Mat &K,
     L(26, 28, white);
 }
 
-// =============================================================================
-// Extension 1: arrow sign on board B pointing toward board A (the church)
-//
-// Logic:
-//   1. tvec_church - tvec_sign  = direction in camera space
-//   2. R_sign^T * direction     = direction in board B's local frame
-//   3. atan2(dy, dx)            = in-plane angle on board B
-//   4. Rotate arrow vertices by that angle around Z
-// =============================================================================
+/**
+ * @brief Extension 1: arrow sign on board B pointing toward board A (church).
+ * @details
+ * Logic:
+ *   1. tvec_church - tvec_sign  = direction in camera space
+ *   2. R_sign^T * direction     = direction in board B's local frame
+ *   3. atan2(dy, dx)            = in-plane angle on board B
+ *   4. Rotate arrow vertices by that angle around Z
+ */
 void drawArrowSign(Mat &frame, const Mat &rvec_sign, const Mat &tvec_sign,
                    const Mat &tvec_church, bool churchVisible, const Mat &K,
                    const Mat &D) {
@@ -274,9 +269,9 @@ void drawArrowSign(Mat &frame, const Mat &rvec_sign, const Mat &tvec_sign,
     L(6, 3, orange, 2); // tip + head right side
 }
 
-// =============================================================================
-// main
-// =============================================================================
+/**
+ * @brief Entry point for AR pose estimation in live or static-image mode.
+ */
 int main(int argc, char *argv[]) {
     std::cout << "Working dir: " << std::filesystem::current_path() << "\n";
 

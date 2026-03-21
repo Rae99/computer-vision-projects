@@ -1,13 +1,24 @@
+/*
+ * CS5330 Mar 2026
+ * Author: Junyao Han, Junrui Ding
+ * Project4-pose_estimation.cpp
+ * Implements calibration loading and checkerboard pose estimation.
+ * These routines power AR overlays by solving camera-to-board transforms.
+ */
+
 #include "pose_estimation.h"
 #include <iostream>
 
-bool readCalibrationFromFile(const std::string& filename,
-                             cv::Mat& cameraMatrix,
-                             cv::Mat& distCoeffs) {
+/**
+ * @brief Load camera matrix and distortion coefficients from file.
+ */
+bool readCalibrationFromFile(const std::string &filename, cv::Mat &cameraMatrix,
+                             cv::Mat &distCoeffs) {
     cv::FileStorage fs(filename, cv::FileStorage::READ);
 
     if (!fs.isOpened()) {
-        std::cout << "Could not open calibration file: " << filename << std::endl;
+        std::cout << "Could not open calibration file: " << filename
+                  << std::endl;
         return false;
     }
 
@@ -26,29 +37,25 @@ bool readCalibrationFromFile(const std::string& filename,
     return true;
 }
 
-bool estimateBoardPose(const std::vector<cv::Vec3f>& worldPoints,
-                       const std::vector<cv::Point2f>& imagePoints,
-                       const cv::Mat& cameraMatrix,
-                       const cv::Mat& distCoeffs,
-                       cv::Mat& rvec,
-                       cv::Mat& tvec) {
+/**
+ * @brief Estimate board pose with solvePnP from 3D-2D correspondences.
+ */
+bool estimateBoardPose(const std::vector<cv::Vec3f> &worldPoints,
+                       const std::vector<cv::Point2f> &imagePoints,
+                       const cv::Mat &cameraMatrix, const cv::Mat &distCoeffs,
+                       cv::Mat &rvec, cv::Mat &tvec) {
     if (worldPoints.empty() || imagePoints.empty()) {
         return false;
     }
 
     if (worldPoints.size() != imagePoints.size()) {
-        std::cout << "worldPoints size does not match imagePoints size." << std::endl;
+        std::cout << "worldPoints size does not match imagePoints size."
+                  << std::endl;
         return false;
     }
 
-    bool success = cv::solvePnP(
-        worldPoints,
-        imagePoints,
-        cameraMatrix,
-        distCoeffs,
-        rvec,
-        tvec
-    );
+    bool success = cv::solvePnP(worldPoints, imagePoints, cameraMatrix,
+                                distCoeffs, rvec, tvec);
 
     return success;
 }

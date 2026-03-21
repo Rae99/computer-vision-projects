@@ -1,12 +1,19 @@
-// feature_main.cpp  –  Task 7: Harris Corner Detection
-//
-// Controls:
-//   Threshold trackbar (0-255) : minimum response strength to mark a corner
-//   Block size trackbar (0-4)  : neighbourhood size (maps to 1,3,5,7,9)
-//   +  /  =                    : increase Harris k by 0.005
-//   -                          : decrease Harris k by 0.005
-//   s                          : save screenshot
-//   q                          : quit
+/*
+ * CS5330 Mar 2026
+ * Author: Junyao Han, Junrui Ding
+ * Project4-feature_main.cpp
+ * Task 7 entry point for Harris corner detection.
+ * This file captures live camera frames, runs Harris response computation,
+ * and visualizes both a heat-map overlay and detected corners.
+ *
+ * Controls:
+ *   Threshold trackbar (0-255) : minimum response strength to mark a corner
+ *   Block size trackbar (0-4)  : neighbourhood size (maps to 1,3,5,7,9)
+ *   +  /  =                    : increase Harris k by 0.005
+ *   -                          : decrease Harris k by 0.005
+ *   s                          : save screenshot
+ *   q                          : quit
+ */
 
 #include <filesystem>
 #include <iomanip>
@@ -14,6 +21,10 @@
 #include <opencv2/opencv.hpp>
 #include <sstream>
 
+/**
+ * @brief Run Task 7 Harris corner detection with interactive controls.
+ * @return 0 on normal exit, -1 if camera cannot be opened.
+ */
 int main() {
     cv::VideoCapture cap(0);
     if (!cap.isOpened()) {
