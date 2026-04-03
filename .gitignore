@@ -34,6 +34,9 @@
 # environment files
 **/venv/
 
+# learning notes (learn branch only)
+**/learning/
+
 
 # .gitignore matching rules (quick note)
 # 	•	File names (no /)
