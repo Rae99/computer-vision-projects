@@ -14,7 +14,13 @@
 *.exe
 
 # report outputs
-**/report/
+# **/report/
+**/assessment1/report/
+*report*.docx
+
+# temporary files
+~$*
+
 
 # image outputs
 **/images/
