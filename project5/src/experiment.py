@@ -127,7 +127,7 @@ def run_experiment(train_loader, test_loader):
 
 
 # Saves experiment results to CSV
-def save_results(results, path='experiment_results.csv'):
+def save_results(results, path='../output/experiment_results.csv'):
     with open(path, 'w', newline='') as f:
         writer = csv.DictWriter(f, fieldnames=['dimension', 'value', 'accuracy'])
         writer.writeheader()
@@ -150,7 +150,7 @@ def plot_results(results):
         axes[i].set_title(f'Effect of {dim}')
 
     plt.tight_layout()
-    plt.savefig('experiment_results.png')
+    plt.savefig('../output/experiment_results.png')
     plt.show()
 
 

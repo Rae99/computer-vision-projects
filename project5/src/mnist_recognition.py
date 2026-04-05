@@ -57,7 +57,7 @@ def plot_first_six(test_loader):
         ax.set_yticks([])
     plt.suptitle('First 6 Test Set Examples')
     plt.tight_layout()
-    plt.savefig('first_six.png')
+    plt.savefig('../output/first_six.png')
     plt.show()
 
 
@@ -131,7 +131,7 @@ def plot_training_curves(train_losses, test_losses, train_accuracies, test_accur
     ax2.legend()
 
     plt.tight_layout()
-    plt.savefig('training_curves.png')
+    plt.savefig('../output/training_curves.png')
     plt.show()
 
 
@@ -146,15 +146,18 @@ def main(argv):
     batch_size = 64
     epochs = 5
 
+    print('Loading data...')
     train_loader, test_loader = get_data(batch_size)
+    print('Plotting first six...')
     plot_first_six(test_loader)
-
+    print('Building model...')
     model = MyNetwork()
     print(model)
-
+    print('Training...')
     train_losses, test_losses, train_accs, test_accs = train_network(
         model, train_loader, test_loader, epochs=epochs)
 
+    print('Plotting curves...')
     plot_training_curves(train_losses, test_losses, train_accs, test_accs)
     save_model(model)
 

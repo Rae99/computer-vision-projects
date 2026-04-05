@@ -63,7 +63,7 @@ def visualize_filters(weights):
 
     plt.suptitle('Conv1 Filter Weights')
     plt.tight_layout()
-    plt.savefig('filters.png')
+    plt.savefig('../output/filters.png')
     plt.show()
 
 
@@ -97,7 +97,7 @@ def apply_filters(model, image):
 
     plt.suptitle('Effect of Conv1 Filters on First Training Image')
     plt.tight_layout()
-    plt.savefig('filter_effects.png')
+    plt.savefig('../output/filter_effects.png')
     plt.show()
 
 
