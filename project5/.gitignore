@@ -1,0 +1,16 @@
+# Handwritten digit images (personal photos)
+my_digits/
+
+# Trained model files
+*.pth
+
+# MNIST data cache
+data/
+
+# Generated output images
+*.png
+*.csv
+
+# Python cache
+__pycache__/
+*.pyc
