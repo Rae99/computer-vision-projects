@@ -9,6 +9,8 @@ import torch.optim as optim
 import torchvision
 import torchvision.transforms as transforms
 import matplotlib.pyplot as plt
+import numpy as np
+import cv2
 import os
 
 from mnist_recognition import MyNetwork
@@ -101,7 +103,7 @@ def plot_greek_loss(losses):
     plt.xlabel('Epoch')
     plt.ylabel('Loss')
     plt.title('Greek Letters Transfer Learning - Training Loss')
-    plt.savefig('greek_training_loss.png')
+    plt.savefig('../output/greek_training_loss.png')
     plt.show()
 
 
@@ -123,27 +125,123 @@ def evaluate_greek(model, loader, class_names=['alpha', 'beta', 'gamma']):
     print(f'\nOverall accuracy: {correct}/{total} = {correct/total:.4f}')
 
 
-# Main function: builds model, trains on Greek letters, evaluates
+# Loads a single image, applies GreekTransform pipeline, returns tensor and processed numpy array
+def preprocess_greek_image(path):
+    img = cv2.imread(path)
+    if img is None:
+        return None
+    # Resize to 133x133 to match expected input size
+    img = cv2.resize(img, (133, 133))
+    # Convert BGR to RGB for torchvision
+    img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+    # Apply transform pipeline manually
+    transform = torchvision.transforms.Compose([
+        torchvision.transforms.ToTensor(),
+        GreekTransform(),
+        torchvision.transforms.Normalize((0.1307,), (0.3081,))
+    ])
+    from PIL import Image
+    pil_img = Image.fromarray(img_rgb)
+    tensor = transform(pil_img).unsqueeze(0)
+    # Get processed image for display (without normalize)
+    display_transform = torchvision.transforms.Compose([
+        torchvision.transforms.ToTensor(),
+        GreekTransform(),
+    ])
+    display_tensor = display_transform(pil_img)
+    display_np = display_tensor.squeeze().numpy()
+    return tensor, display_np
+
+
+# Runs model on custom Greek letter images, prints and plots results
+def test_custom_greek(model, folder, class_names=['alpha', 'beta', 'gamma']):
+    image_files = sorted([f for f in os.listdir(folder)
+                          if f.lower().endswith(('.png', '.jpg', '.jpeg'))])
+    if not image_files:
+        print(f'No images found in {folder}')
+        return
+
+    results = []
+    correct = 0
+    for fname in image_files:
+        # Determine true label from filename prefix
+        true_label = None
+        for i, name in enumerate(class_names):
+            if fname.lower().startswith(name):
+                true_label = i
+                break
+        if true_label is None:
+            print(f'Could not determine label for {fname}, skipping')
+            continue
+
+        path = os.path.join(folder, fname)
+        result = preprocess_greek_image(path)
+        if result is None:
+            continue
+        tensor, display_np = result
+        with torch.no_grad():
+            output = model(tensor)
+        pred = output.argmax().item()
+        correct += int(pred == true_label)
+        results.append((fname, display_np, pred, true_label))
+        status = 'correct' if pred == true_label else 'WRONG'
+        print(f'{fname}: Predicted={class_names[pred]:<8} True={class_names[true_label]:<8} {status}')
+
+    print(f'\nAccuracy: {correct}/{len(results)} = {correct/len(results):.4f}')
+
+    # Plot results
+    n = len(results)
+    cols = 5
+    rows = (n + cols - 1) // cols
+    fig, axes = plt.subplots(rows, cols, figsize=(cols * 2, rows * 2.5))
+    axes = np.array(axes).reshape(-1)
+    for i, (fname, img, pred, true) in enumerate(results):
+        color = 'green' if pred == true else 'red'
+        axes[i].imshow(img, cmap='gray')
+        axes[i].set_title(f'P:{class_names[pred]}\nT:{class_names[true]}', color=color, fontsize=8)
+        axes[i].set_xticks([])
+        axes[i].set_yticks([])
+    for j in range(i + 1, len(axes)):
+        axes[j].axis('off')
+    plt.suptitle('Custom Greek Letter Predictions')
+    plt.tight_layout()
+    plt.savefig('../output/custom_greek_results.png')
+    plt.show()
+
+
+# Main function: trains (or loads) Greek model, evaluates, optionally tests custom images
+# Usage: python greek_transfer.py <training_path> [custom_test_path]
+# If greek_model.pth exists, skips training and loads saved weights.
 def main(argv):
-    # Path to folder containing alpha/, beta/, gamma/ subfolders
-    training_set_path = argv[1] if len(argv) > 1 else 'data/greek_train'
+    training_set_path = argv[1] if len(argv) > 1 else '../data/greek_train'
+    custom_path = argv[2] if len(argv) > 2 else None
 
     if not os.path.exists(training_set_path):
         print(f'Greek training data not found at: {training_set_path}')
-        print('Usage: python greek_transfer.py <path_to_greek_data>')
+        print('Usage: python greek_transfer.py <training_path> [custom_test_path]')
         return
 
     greek_loader = get_greek_loader(training_set_path)
-    model = build_greek_model()
 
-    losses = train_greek(model, greek_loader, epochs=20)
-    plot_greek_loss(losses)
+    model_path = 'greek_model.pth'
+    if os.path.exists(model_path):
+        print(f'Loading saved model from {model_path} (skipping training)')
+        model = build_greek_model()
+        model.load_state_dict(torch.load(model_path))
+        model.eval()
+    else:
+        model = build_greek_model()
+        losses = train_greek(model, greek_loader, epochs=20)
+        plot_greek_loss(losses)
+        torch.save(model.state_dict(), model_path)
+        print(f'Greek model saved to {model_path}')
 
     print('\nEvaluating on training set:')
     evaluate_greek(model, greek_loader)
 
-    torch.save(model.state_dict(), 'greek_model.pth')
-    print('Greek model saved to greek_model.pth')
+    if custom_path and os.path.exists(custom_path):
+        print(f'\nTesting on custom Greek images from {custom_path}:')
+        test_custom_greek(model, custom_path)
 
     return
 

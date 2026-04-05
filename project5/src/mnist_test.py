@@ -60,7 +60,7 @@ def plot_first_nine(images, labels, outputs):
         ax.set_xticks([])
         ax.set_yticks([])
     plt.tight_layout()
-    plt.savefig('test_predictions.png')
+    plt.savefig('../output/test_predictions.png')
     plt.show()
 
 
@@ -91,7 +91,7 @@ def preprocess_custom_image(path):
 
 
 # Runs the model on all custom handwritten digit images in a folder
-def test_custom_digits(model, folder='my_digits'):
+def test_custom_digits(model, folder='my_digits', save_name='custom_digits_results.png'):
     if not os.path.exists(folder):
         print(f'Folder "{folder}" not found. Create it and put your digit images there.')
         return
@@ -132,7 +132,7 @@ def test_custom_digits(model, folder='my_digits'):
         axes[j].axis('off')
     plt.suptitle('Custom Handwritten Digits')
     plt.tight_layout()
-    plt.savefig('custom_digits_results.png')
+    plt.savefig(f'../output/{save_name}')
     plt.show()
 
 
@@ -144,8 +144,8 @@ def main(argv):
     images, labels, outputs = run_on_first_ten(model, test_loader)
     plot_first_nine(images, labels, outputs)
 
-    test_custom_digits(model, folder='my_digits')
-
+    test_custom_digits(model, folder='my_digits', save_name='custom_digits_v1.png')
+    test_custom_digits(model, folder='my_digits_v2', save_name='custom_digits_v2.png')
     return
 
 

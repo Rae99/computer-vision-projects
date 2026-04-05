@@ -124,7 +124,7 @@ def plot_transformer_curves(train_losses, test_losses, train_accs, test_accs):
     ax2.legend()
 
     plt.tight_layout()
-    plt.savefig('transformer_curves.png')
+    plt.savefig('../output/transformer_curves.png')
     plt.show()
 
 
