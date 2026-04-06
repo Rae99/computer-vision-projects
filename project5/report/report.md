@@ -26,6 +26,17 @@ The network architecture consists of:
 
 The model was trained using SGD with momentum=0.5, learning rate=0.01, and batch size=64 for 5 epochs.
 
+The network architecture is illustrated below:
+
+```
+Input (1×28×28 grayscale image)
+→ Conv2d(1→10, 5×5) → MaxPool2d(2×2) → ReLU
+→ Conv2d(10→20, 5×5) → Dropout(0.5) → MaxPool2d(2×2) → ReLU
+→ Flatten → Linear(320→50) → ReLU
+→ Linear(50→10) → LogSoftmax
+→ Output (10 digit classes)
+```
+
 The first 6 examples from the test set are shown below:
 
 ![First 6 test set examples](../output/first_six.png)
@@ -80,9 +91,24 @@ The results make sense given the filter shapes. Some filters produce smoothing/b
 
 ## Task 3: Transfer Learning on Greek Letters
 
+The Greek letter dataset was provided by the course instructor and consists of 27 labeled images (9 per class: alpha, beta, gamma), each 133×133 pixels in color. Images were preprocessed using a custom `GreekTransform` pipeline: converted to grayscale, scaled and center-cropped to 28×28, and intensity-inverted to match the MNIST format (white strokes on black background). The dataset was loaded using PyTorch's `ImageFolder` class.
+
 For this task, we adapted the pretrained MNIST CNN to classify three Greek letters: alpha, beta, and gamma, using only 27 training examples (9 per class). We froze all network weights except the final fully connected layer, which was replaced with a new 3-node output layer. Only this new layer (153 parameters) was trained — the rest of the network retained its MNIST-learned features.
 
-The modified network structure is identical to the original except for the final layer: `fc2: Linear(in_features=50, out_features=3)`.
+The modified network printout is shown below:
+
+```
+MyNetwork(
+  (conv1): Conv2d(1, 10, kernel_size=(5, 5), stride=(1, 1))
+  (conv2): Conv2d(10, 20, kernel_size=(5, 5), stride=(1, 1))
+  (dropout): Dropout(p=0.5, inplace=False)
+  (pool): MaxPool2d(kernel_size=2, stride=2, padding=0, dilation=1, ceil_mode=False)
+  (fc1): Linear(in_features=320, out_features=50, bias=True)
+  (fc2): Linear(in_features=50, out_features=3, bias=True)
+)
+```
+
+The only change from the original network is `fc2`: output nodes reduced from 10 to 3 (alpha, beta, gamma). All other layers are frozen.
 
 ![Training loss over 20 epochs](../output/greek_training_loss.png)
 
@@ -110,19 +136,24 @@ The transformer model achieved **97.1% test accuracy** after 5 epochs, compared 
 
 ## Task 5: Design Your Own Experiment
 
-We conducted an ablation study on the CNN architecture, varying three dimensions one at a time using a linear search strategy. Each configuration was trained for 3 epochs and evaluated on the test set. A total of 12 network variants were evaluated.
+We conducted an ablation study on the CNN architecture using a linear search strategy — varying one dimension at a time while keeping others fixed at the best value found so far. Each configuration was trained for 3 epochs and evaluated on the test set. A total of 60 network variants were evaluated across 6 dimensions.
 
 **Dimensions explored:**
 
-1. Number of conv1 filters: [5, 10, 20, 40]
-2. Dropout rate: [0.1, 0.25, 0.5, 0.75]
-3. FC1 hidden size: [25, 50, 100, 200]
+1. conv1_filters: [4, 8, 10, 16, 20, 32, 40, 64]
+2. conv2_filters: [10, 16, 20, 32, 40, 64, 80]
+3. dropout_rate: [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.75]
+4. fc1_size: [16, 25, 50, 75, 100, 150, 200, 256]
+5. batch_size: [32, 48, 64, 96, 128, 192, 256]
+6. learning_rate: [0.001, 0.005, 0.01, 0.02, 0.05, 0.1, 0.2]
 
 **Hypotheses (before running):**
 
-- More conv1 filters → higher accuracy up to a point, then diminishing returns
-- Higher dropout → lower accuracy (too much regularization hurts with this dataset size)
-- Larger FC1 → marginal improvement (MNIST bottleneck is in the conv layers)
+- conv1/conv2 filters: more filters → higher accuracy up to a point, then diminishing returns
+- dropout_rate: moderate dropout helps generalization; very high dropout hurts
+- fc1_size: optimal middle ground — too small underfits, too large may overfit in 3 epochs
+- batch_size: smaller batches → noisier gradients but often better generalization
+- learning_rate: too low = slow convergence in 3 epochs; too high = unstable training
 
 ![Accuracy vs. value for each dimension](../output/experiment_results.png)
 
@@ -130,33 +161,78 @@ We conducted an ablation study on the CNN architecture, varying three dimensions
 
 | Dimension     | Value | Test Accuracy |
 | ------------- | ----- | ------------- |
-| conv1_filters | 5     | 98.21%        |
-| conv1_filters | 10    | 98.08%        |
-| conv1_filters | 20    | 98.33%        |
-| conv1_filters | 40    | 98.40%        |
-| dropout_rate  | 0.10  | 98.25%        |
-| dropout_rate  | 0.25  | 98.35%        |
-| dropout_rate  | 0.50  | 98.47%        |
-| dropout_rate  | 0.75  | 98.58%        |
-| fc1_size      | 25    | 98.19%        |
-| fc1_size      | 50    | 98.38%        |
-| fc1_size      | 100   | 98.64%        |
-| fc1_size      | 200   | 98.30%        |
+| conv1_filters | 4     | 98.33%        |
+| conv1_filters | 8     | 98.41%        |
+| conv1_filters | 10    | 98.11%        |
+| conv1_filters | 16    | 98.35%        |
+| conv1_filters | 20    | 98.39%        |
+| conv1_filters | 32    | 98.45%        |
+| conv1_filters | 40    | 98.36%        |
+| conv1_filters | 64    | 98.39%        |
+| conv2_filters | 10    | 98.21%        |
+| conv2_filters | 16    | 98.20%        |
+| conv2_filters | 20    | 98.20%        |
+| conv2_filters | 32    | 98.54%        |
+| conv2_filters | 40    | 98.62%        |
+| conv2_filters | 64    | 98.57%        |
+| conv2_filters | 80    | 98.70%        |
+| dropout_rate  | 0.0   | 98.54%        |
+| dropout_rate  | 0.1   | 98.31%        |
+| dropout_rate  | 0.2   | 98.67%        |
+| dropout_rate  | 0.3   | 98.52%        |
+| dropout_rate  | 0.4   | 98.52%        |
+| dropout_rate  | 0.5   | 98.01%        |
+| dropout_rate  | 0.6   | 98.51%        |
+| dropout_rate  | 0.75  | 98.46%        |
+| fc1_size      | 16    | 98.38%        |
+| fc1_size      | 25    | 98.46%        |
+| fc1_size      | 50    | 98.52%        |
+| fc1_size      | 75    | 98.25%        |
+| fc1_size      | 100   | 98.71%        |
+| fc1_size      | 150   | 98.54%        |
+| fc1_size      | 200   | 98.37%        |
+| fc1_size      | 256   | 98.76%        |
+| batch_size    | 32    | 98.66%        |
+| batch_size    | 48    | 98.83%        |
+| batch_size    | 64    | 98.61%        |
+| batch_size    | 96    | 98.29%        |
+| batch_size    | 128   | 98.12%        |
+| batch_size    | 192   | 97.69%        |
+| batch_size    | 256   | 96.78%        |
+| learning_rate | 0.001 | 95.28%        |
+| learning_rate | 0.005 | 98.31%        |
+| learning_rate | 0.01  | 98.84%        |
+| learning_rate | 0.02  | 98.59%        |
+| learning_rate | 0.05  | 98.98%        |
+| learning_rate | 0.1   | 99.02%        |
+| learning_rate | 0.2   | 98.85%        |
 
 **Discussion:**
 
-The results partially supported our hypotheses. For conv1 filters, accuracy generally increased with more filters (5→40: 98.21%→98.40%), though the differences were small — consistent with diminishing returns on a simple dataset like MNIST. Notably, 10 filters performed slightly worse than 5, suggesting some stochasticity in 3-epoch training.
+The results partially supported our hypotheses across all 6 dimensions (45 total variants).
 
-For dropout rate, the result was surprising and contradicted our hypothesis: higher dropout consistently improved accuracy, with 0.75 achieving the best result (98.58%). This suggests the baseline model was slightly underfitting rather than overfitting, and stronger regularization helped generalization.
+**conv1_filters:** Accuracy varied only slightly (98.11%–98.45%) with no clear trend. This suggests conv1 filter count is not a bottleneck for MNIST — even 4 filters capture sufficient low-level features.
 
-For FC1 size, accuracy peaked at 100 nodes (98.64%) and dropped at 200, matching our hypothesis of an optimal middle ground — too small underfits, too large may overfit or add noise with only 3 epochs of training.
+**conv2_filters:** A clearer trend: accuracy increased from 98.21% (10 filters) to 98.70% (80 filters). Since conv2 feeds directly into the fully connected layers, its capacity has more impact on classification.
+
+**dropout_rate:** Non-monotonic results — 0.2 performed best (98.67%) while 0.5 performed worst (98.01%). Moderate regularization helps, but the relationship is not linear. Our hypothesis that higher dropout would hurt was partially wrong.
+
+**fc1_size:** No strong trend — accuracy peaked at 256 nodes (98.76%) but improvements were modest. This supports our hypothesis that MNIST's bottleneck is in the convolutional layers, not FC.
+
+**batch_size:** Clear monotonic decrease as batch size increased (98.83% at 48 → 96.78% at 256), fully supporting our hypothesis. Smaller batches produce more frequent gradient updates, which helps convergence in only 3 epochs.
+
+**learning_rate:** Best result at lr=0.1 (99.02%), with a sharp drop at lr=0.001 (95.28%) due to insufficient convergence. The optimal range appears to be 0.05–0.1, higher than the baseline of 0.01, suggesting the baseline was somewhat conservative.
 
 ---
 
 ## Reflection
 
 **Junrui:**
-This project helped me understand how convolutional neural networks learn hierarchical features from images, and how transfer learning allows a pretrained model to be repurposed for a new task with very little data. Seeing the learned filters and their effects on actual images made the abstract concept of feature detection much more concrete. I was also surprised by how quickly the transformer model trained on CPU — though it achieved slightly lower accuracy than the CNN, it demonstrated that attention-based architectures can be competitive even on simple datasets.
+This project helped me better understand how CNNs learn features from images. Seeing the filters and how they change the images made the concept much easier to understand.
+
+I also learned how transfer learning works, and how a pretrained model can be reused for a new task with only a small amount of data.
+
+One thing that surprised me was how fast the transformer model trained on CPU. Even though its accuracy was a bit lower than the CNN, it still worked quite well on this dataset.
 
 **Junyao:**
 
