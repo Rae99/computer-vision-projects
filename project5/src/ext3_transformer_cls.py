@@ -1,4 +1,4 @@
-# Junrui Ding
+# Junrui Ding, Junyao Han
 # Project 5: Recognition using Deep Networks
 # Extension 3: Vision Transformer with CLS token classification (instead of mean pooling)
 

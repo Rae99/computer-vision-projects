@@ -1,4 +1,4 @@
-# Junrui Ding
+# Junrui Ding, Junyao Han
 # Project 5: Recognition using Deep Networks
 # Task 1: Build and train a CNN to recognize MNIST digits
 

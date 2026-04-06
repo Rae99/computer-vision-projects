@@ -1,4 +1,4 @@
-# Junrui Ding
+# Junrui Ding, Junyao Han
 # Project 5: Recognition using Deep Networks
 # Task 3: Transfer learning to recognize Greek letters (alpha, beta, gamma)
 

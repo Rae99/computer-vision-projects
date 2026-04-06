@@ -1,4 +1,4 @@
-# Junrui Ding
+# Junrui Ding, Junyao Han
 # Project 5: Recognition using Deep Networks
 # Task 2: Examine the trained network - visualize filters and their effects
 

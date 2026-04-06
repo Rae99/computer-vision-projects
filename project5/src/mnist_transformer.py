@@ -1,4 +1,4 @@
-# Junrui Ding
+# Junrui Ding, Junyao Han
 # Project 5: Recognition using Deep Networks
 # Task 4: Re-implement MNIST recognition using Transformer layers
 

@@ -1,4 +1,4 @@
-# Junrui Ding
+# Junrui Ding, Junyao Han
 # Project 5: Recognition using Deep Networks
 # Task 1E-F: Load trained model, run on test set and custom handwritten digits
 

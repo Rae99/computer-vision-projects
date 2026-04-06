@@ -1,4 +1,4 @@
-# Junrui Ding
+# Junrui Ding, Junyao Han
 # Project 5: Recognition using Deep Networks
 # Extension 2: Examine pretrained ResNet18 filters and compare to MNIST CNN filters
 

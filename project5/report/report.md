@@ -87,6 +87,30 @@ We then applied all 10 filters to the first training image (digit "5") using Ope
 
 The results make sense given the filter shapes. Some filters produce smoothing/brightening effects (e.g., Filter 0), preserving the overall stroke structure. Others produce strong edge enhancement (e.g., Filter 2, 6), highlighting the boundaries and directional strokes of the digit. Filters with opposing positive/negative weights (e.g., Filter 3) produce a gray background with sharp contrast at stroke edges, consistent with edge detection behavior.
 
+### Extension: Examining a Pre-trained ResNet18
+
+As an extension of Task 2, we loaded a pretrained ResNet18 model from PyTorch and examined the weights of its first convolutional layer. ResNet18 has 64 filters in `conv1`, each of size 7×7 with 3 input channels. To visualize them in a simple way, we averaged each filter across the RGB channels and plotted the 64 resulting filters in an 8×8 grid.
+
+![Pretrained ResNet18 conv1 filters](../output/ext2_resnet18_filters.png)
+
+The filters are noticeably more complex than those learned by our MNIST CNN. While the MNIST filters mainly capture simple stroke fragments, blobs, and edge responses in grayscale, the ResNet18 filters show stronger directional structure and more diverse spatial patterns. Several filters resemble Gabor-like edge detectors, with oriented bright and dark regions that would respond to edges or texture transitions in natural images.
+
+This difference is expected because ResNet18 was pretrained on ImageNet, which contains a much broader variety of objects and visual patterns than MNIST. The pretrained filters therefore capture more general-purpose low-level image features, while the MNIST filters are more specialized for handwritten digit recognition.
+
+### Extension: Replacing the First Layer with Gabor Filters
+
+To explore whether hand-designed filters can substitute for learned filters, we replaced the first convolutional layer of the MNIST CNN with a bank of 10 fixed 5×5 Gabor filters. The filters were generated with different orientations and then assigned directly to `conv1.weight`. This layer was frozen, and only the remaining layers (`conv2`, `fc1`, and `fc2`) were retrained for 5 epochs.
+
+![Gabor filters used to replace conv1](../output/ext4_gabor_filters.png)
+
+The modified network trained successfully and reached strong performance:
+
+![Training and test curves for the Gabor conv1 model](../output/ext4_gabor_curves.png)
+
+The final test accuracy of the Gabor model was **98.66%**, compared with **98.79%** for the original fully trained MNIST model. The Gabor-based model was therefore only **0.13 percentage points lower** than the learned-filter model.
+
+This is a strong result. Gabor filters are classical edge detectors and are often considered biologically inspired approximations of early visual processing. The fact that the frozen Gabor first layer performed almost as well as the learned first layer suggests that the first CNN layer on MNIST is primarily learning edge- and stroke-oriented features anyway. At the same time, the slightly better performance of the original model indicates that learned filters still retain some advantage by adapting directly to the statistics of the training data.
+
 ---
 
 ## Task 3: Transfer Learning on Greek Letters
@@ -131,6 +155,18 @@ For this task, we replaced the CNN with a Vision Transformer (ViT)-style model. 
 ![Transformer training and test loss/accuracy over 5 epochs](../output/transformer_curves.png)
 
 The transformer model achieved **97.1% test accuracy** after 5 epochs, compared to **98.6%** for the CNN. The transformer trained noticeably slower on CPU due to the attention computation overhead. The gap in accuracy is expected — transformers generally require more data and longer training to match CNNs on small datasets like MNIST, where local spatial structure (well-captured by convolutions) is the dominant feature.
+
+### Extension: Transformer with CLS Token
+
+For this extension, we modified the transformer model from Task 4 by adding a learnable CLS token and increasing the encoder depth from 2 layers to 4 layers. Instead of averaging all patch tokens at the end of the transformer, the CLS token was prepended to the sequence and used as the single representation for classification.
+
+The modified model contained **147,850 parameters** and was trained for 5 epochs on MNIST.
+
+![Transformer with CLS token training and test curves](../output/ext3_transformer_cls_curves.png)
+
+The model achieved **97.39% test accuracy** after 5 epochs, slightly higher than the **97.1%** test accuracy of the original mean-pooling transformer. The improvement was modest, but it suggests that the CLS token provided a slightly stronger global representation for classification.
+
+This result makes sense conceptually. Mean pooling treats all patch tokens equally, while the CLS token is trained to gather the most useful information across the full image through self-attention. On a simple dataset like MNIST, both methods work well and the difference remains small. Still, the CLS token version is closer to the standard ViT design and may offer larger benefits on more complex datasets.
 
 ---
 
@@ -235,6 +271,7 @@ I also learned how transfer learning works, and how a pretrained model can be re
 One thing that surprised me was how fast the transformer model trained on CPU. Even though its accuracy was a bit lower than the CNN, it still worked quite well on this dataset.
 
 **Junyao:**
+This project helped me understand more clearly how CNNs and transformers process image data differently. The extension experiments were especially useful because they made the effects of design choices more concrete, such as changing batch size, using a CLS token, or replacing learned filters with Gabor filters. I also found it interesting that a hand-designed first layer could perform almost as well as a learned one on MNIST. Overall, this project gave me a better practical understanding of how deep networks are built, analyzed, and compared.
 
 ---
 
